@@ -99,8 +99,16 @@ Scripts:
 - `build:watch`: Rebuild on changes.
 - `start`: Run the built CLI.
 - `test`: Run unit tests with Vitest.
-- `lint`: Lint with ESLint.
+- `lint`: Lint with ESLint (auto-fix).
+- `lint:check`: Lint without fixing.
 - `format`: Auto-format with Prettier.
+- `check`: Run Prettier check + ESLint (used on pre-push/publish).
+- Pre-push: Husky runs `npm run check` and `npm test` before pushing.
+
+Linting notes:
+
+- Unused imports are auto-removed via `eslint-plugin-unused-imports` when running with `--fix` (used in `npm run lint`).
+- For intentionally unused variables or parameters, prefix them with `_` (config ignores `^_`).
 
 Publishing (manual):
 

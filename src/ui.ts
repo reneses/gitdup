@@ -1,7 +1,8 @@
 /* Simple color and spinner utilities without external deps */
 const COLOR = !process.env.NO_COLOR && process.stdout.isTTY;
 const esc = (n: number) => `\u001B[${n}m`;
-const paint = (open: number) => (s: string) => (COLOR ? esc(open) + s + esc(0) : s);
+const paint = (open: number) => (s: string) =>
+  COLOR ? esc(open) + s + esc(0) : s;
 const bold = paint(1);
 const dim = paint(2);
 const underline = paint(4);
@@ -12,7 +13,17 @@ const blue = paint(34);
 const magenta = paint(35);
 const cyan = paint(36);
 
-export const colors = { bold, dim, underline, red, green, yellow, blue, magenta, cyan };
+export const colors = {
+  bold,
+  dim,
+  underline,
+  red,
+  green,
+  yellow,
+  blue,
+  magenta,
+  cyan,
+};
 export const indent = '  ';
 
 export function linkifyPath(absPath: string): string {
@@ -29,7 +40,10 @@ export type Spinner = {
   stop(): void;
 };
 
-export function createSpinner(enabled = process.stdout.isTTY, prefix = ''): Spinner {
+export function createSpinner(
+  enabled = process.stdout.isTTY,
+  prefix = ''
+): Spinner {
   if (!enabled) {
     // no-op spinner for non-TTY
     let current = '';
@@ -63,7 +77,7 @@ export function createSpinner(enabled = process.stdout.isTTY, prefix = ''): Spin
   };
 
   const render = () => {
-    const frame = frames[i = (i + 1) % frames.length];
+    const frame = frames[(i = (i + 1) % frames.length)];
     clearLine();
     process.stdout.write(prefix + `${cyan(frame)} ${current}`);
   };
@@ -72,7 +86,11 @@ export function createSpinner(enabled = process.stdout.isTTY, prefix = ''): Spin
     current = text;
     if (active) return;
     active = true;
-    try { process.stdout.write('\x1b[?25l'); } catch {}
+    try {
+      process.stdout.write('\x1b[?25l');
+    } catch (_e) {
+      void 0; // ignore cursor hide failures
+    }
     timer = setInterval(render, 80);
   };
 
@@ -80,14 +98,22 @@ export function createSpinner(enabled = process.stdout.isTTY, prefix = ''): Spin
     current = t;
   };
 
-  const finalize = (symbol: string, color: (s: string) => string, textOut?: string) => {
+  const finalize = (
+    symbol: string,
+    color: (s: string) => string,
+    textOut?: string
+  ) => {
     current = textOut || current;
     if (timer) clearInterval(timer);
     timer = null;
     active = false;
     clearLine();
     process.stdout.write(prefix + `${color(symbol)} ${current}\n`);
-    try { process.stdout.write('\x1b[?25h'); } catch {}
+    try {
+      process.stdout.write('\x1b[?25h');
+    } catch (_e) {
+      void 0; // ignore cursor restore failures
+    }
   };
 
   const succeed = (t?: string) => finalize('✔', green, t);
@@ -96,7 +122,11 @@ export function createSpinner(enabled = process.stdout.isTTY, prefix = ''): Spin
     if (timer) clearInterval(timer);
     timer = null;
     active = false;
-    try { process.stdout.write('\x1b[?25h'); } catch {}
+    try {
+      process.stdout.write('\x1b[?25h');
+    } catch (_e) {
+      void 0; // ignore cursor restore failures
+    }
     clearLine();
   };
 

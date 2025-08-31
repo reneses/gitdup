@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { gitdup } from '../src/index';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { execFile } from 'node:child_process';
+import { execFile, type ExecException } from 'node:child_process';
 const TMP_ROOT = path.join(process.cwd(), '.tmp', 'gitdup');
 
 function exec(
@@ -11,12 +11,14 @@ function exec(
   cwd: string
 ): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
-    const child = execFile(cmd, args, { cwd }, (error, stdout, stderr) => {
-      resolve({
-        stdout: String(stdout),
-        stderr: String(stderr),
-        code: error ? ((error as any).code ?? 1) : 0,
-      });
+    execFile(cmd, args, { cwd }, (error, stdout, stderr) => {
+      const err = error as ExecException | null;
+      const code = err
+        ? typeof err.code === 'number'
+          ? (err.code as number)
+          : 1
+        : 0;
+      resolve({ stdout: String(stdout), stderr: String(stderr), code });
     });
   });
 }
@@ -134,7 +136,9 @@ describe('gitdup', () => {
     const prev = process.cwd();
     try {
       process.chdir(repo);
-      await expect(gitdup({ dest: fileDest })).rejects.toThrow(/not a directory/);
+      await expect(gitdup({ dest: fileDest })).rejects.toThrow(
+        /not a directory/
+      );
     } finally {
       process.chdir(prev);
     }
@@ -249,7 +253,9 @@ describe('gitdup', () => {
     const prev = process.cwd();
     try {
       process.chdir(repo);
-      await expect(gitdup({ dest: repo })).rejects.toThrow(/Destination is the same/);
+      await expect(gitdup({ dest: repo })).rejects.toThrow(
+        /Destination is the same/
+      );
     } finally {
       process.chdir(prev);
     }
@@ -294,7 +300,7 @@ describe('gitdup', () => {
     // Create our source repo and point its remote to the bare remote
     const repo = await mkTempDir('source-');
     await initRepo(repo);
-    let res = await exec('git', ['remote', 'add', 'origin', bare], repo);
+    const res = await exec('git', ['remote', 'add', 'origin', bare], repo);
     if (res.code !== 0) throw new Error(res.stderr);
 
     const prev = process.cwd();

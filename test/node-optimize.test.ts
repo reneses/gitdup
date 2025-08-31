@@ -1,15 +1,25 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import { gitdup } from '../src/index';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { execFile } from 'node:child_process';
+import { execFile, type ExecException } from 'node:child_process';
 
 const TMP_ROOT = path.join(process.cwd(), '.tmp', 'node');
 
-function exec(cmd: string, args: string[], cwd?: string): Promise<{ stdout: string; stderr: string; code: number }>{
+function exec(
+  cmd: string,
+  args: string[],
+  cwd?: string
+): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
     execFile(cmd, args, { cwd }, (error, stdout, stderr) => {
-      resolve({ stdout: String(stdout), stderr: String(stderr), code: error ? ((error as any).code ?? 1) : 0 });
+      const err = error as ExecException | null;
+      const code = err
+        ? typeof err.code === 'number'
+          ? (err.code as number)
+          : 1
+        : 0;
+      resolve({ stdout: String(stdout), stderr: String(stderr), code });
     });
   });
 }
@@ -45,7 +55,9 @@ describe('Node optimization', () => {
       path.join(repo, 'package.json'),
       JSON.stringify({ name: 'tmp', version: '1.0.0' }, null, 2)
     );
-    await fs.mkdir(path.join(repo, 'node_modules', '.bin'), { recursive: true });
+    await fs.mkdir(path.join(repo, 'node_modules', '.bin'), {
+      recursive: true,
+    });
     await fs.writeFile(path.join(repo, 'node_modules', 'leftpad.txt'), 'x');
 
     const prev = process.cwd();
@@ -56,9 +68,13 @@ describe('Node optimization', () => {
       const res = await gitdup({ dest, install: false });
       expect(res.dest).toBe(dest);
       // node_modules should not be copied
-      await expect(fs.stat(path.join(dest, 'node_modules'))).rejects.toBeTruthy();
+      await expect(
+        fs.stat(path.join(dest, 'node_modules'))
+      ).rejects.toBeTruthy();
       // package.json should be present
-      await expect(fs.stat(path.join(dest, 'package.json'))).resolves.toBeTruthy();
+      await expect(
+        fs.stat(path.join(dest, 'package.json'))
+      ).resolves.toBeTruthy();
     } finally {
       process.chdir(prev);
     }

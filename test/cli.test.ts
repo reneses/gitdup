@@ -1,14 +1,24 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { execFile } from 'node:child_process';
+import { execFile, type ExecException } from 'node:child_process';
 
 const TMP_ROOT = path.join(process.cwd(), '.tmp', 'cli');
 
-function exec(cmd: string, args: string[], cwd?: string): Promise<{ stdout: string; stderr: string; code: number }>{
+function exec(
+  cmd: string,
+  args: string[],
+  cwd?: string
+): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
     execFile(cmd, args, { cwd }, (error, stdout, stderr) => {
-      resolve({ stdout: String(stdout), stderr: String(stderr), code: error ? ((error as any).code ?? 1) : 0 });
+      const err = error as ExecException | null;
+      const code = err
+        ? typeof err.code === 'number'
+          ? (err.code as number)
+          : 1
+        : 0;
+      resolve({ stdout: String(stdout), stderr: String(stderr), code });
     });
   });
 }

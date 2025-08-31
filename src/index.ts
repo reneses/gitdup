@@ -40,7 +40,12 @@ export interface GitDupResult {
   checkedOut?: string;
 }
 
-function run(cmd: string, args: string[], cwd: string, verbose = false): Promise<void> {
+function run(
+  cmd: string,
+  args: string[],
+  cwd: string,
+  verbose = false
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, {
       cwd,
@@ -50,8 +55,8 @@ function run(cmd: string, args: string[], cwd: string, verbose = false): Promise
     let out = '';
     let err = '';
     if (!verbose) {
-      child.stdout?.on('data', (b) => (out += b.toString()))
-      child.stderr?.on('data', (b) => (err += b.toString()))
+      child.stdout?.on('data', (b) => (out += b.toString()));
+      child.stderr?.on('data', (b) => (err += b.toString()));
     }
     child.on('close', (code) => {
       if (code === 0) return resolve();
@@ -63,7 +68,11 @@ function run(cmd: string, args: string[], cwd: string, verbose = false): Promise
 
 function runCapture(cmd: string, args: string[], cwd: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], shell: false });
+    const child = spawn(cmd, args, {
+      cwd,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: false,
+    });
     let out = '';
     let err = '';
     child.stdout?.on('data', (b) => (out += b.toString()));
@@ -105,7 +114,9 @@ function pathHasNodeModules(p: string): boolean {
   return parts.includes('node_modules');
 }
 
-async function detectPackageManager(dir: string): Promise<{ cmd: string; args: string[] } | null> {
+async function detectPackageManager(
+  dir: string
+): Promise<{ cmd: string; args: string[] } | null> {
   // Prefer explicit packageManager field
   try {
     const pkgRaw = await fs.readFile(path.join(dir, 'package.json'), 'utf8');
@@ -115,7 +126,9 @@ async function detectPackageManager(dir: string): Promise<{ cmd: string; args: s
       const candidate = await pmCommandFor(name, dir);
       if (candidate) return candidate;
     }
-  } catch {}
+  } catch (_e) {
+    void 0; // ignore JSON or read errors
+  }
 
   // Detect by lockfiles
   const candidates: Array<{ check: string; pm: string }> = [
@@ -135,7 +148,10 @@ async function detectPackageManager(dir: string): Promise<{ cmd: string; args: s
   return npm;
 }
 
-async function pmCommandFor(pm: string, dir: string): Promise<{ cmd: string; args: string[] } | null> {
+async function pmCommandFor(
+  pm: string,
+  dir: string
+): Promise<{ cmd: string; args: string[] } | null> {
   const has = async (cmd: string): Promise<boolean> => {
     try {
       await runCapture(cmd, ['--version'], dir);
@@ -150,8 +166,11 @@ async function pmCommandFor(pm: string, dir: string): Promise<{ cmd: string; arg
       return null;
     case 'pnpm':
       if (await has('pnpm')) {
-        const frozen = (await pathExists(path.join(dir, 'pnpm-lock.yaml')));
-        return { cmd: 'pnpm', args: ['install', ...(frozen ? ['--frozen-lockfile'] : [])] };
+        const frozen = await pathExists(path.join(dir, 'pnpm-lock.yaml'));
+        return {
+          cmd: 'pnpm',
+          args: ['install', ...(frozen ? ['--frozen-lockfile'] : [])],
+        };
       }
       return null;
     case 'yarn':
@@ -186,7 +205,9 @@ async function defaultDest(cwd: string): Promise<string> {
   return path.join(parent, `${base}-dup-${stamp}`);
 }
 
-export async function gitdup(options: GitDupOptions = {}): Promise<GitDupResult> {
+export async function gitdup(
+  options: GitDupOptions = {}
+): Promise<GitDupResult> {
   const cwd = process.cwd();
   await ensureGitRepo(cwd);
 
@@ -249,25 +270,51 @@ export async function gitdup(options: GitDupOptions = {}): Promise<GitDupResult>
 
   let checkedOut: string | undefined;
   if (options.branch) {
-    options.onProgress?.({ type: 'git:branch:start', dest, branch: options.branch });
+    options.onProgress?.({
+      type: 'git:branch:start',
+      dest,
+      branch: options.branch,
+    });
     // Fetch only if remotes exist; skip otherwise (local-only repo)
     try {
-      const remotes = (await runCapture('git', ['remote'], dest)).trim().split('\n').filter(Boolean);
+      const remotes = (await runCapture('git', ['remote'], dest))
+        .trim()
+        .split('\n')
+        .filter(Boolean);
       if (remotes.length > 0) {
-        await run('git', ['fetch', '--all', '--prune'], dest, !!options.verbose);
+        await run(
+          'git',
+          ['fetch', '--all', '--prune'],
+          dest,
+          !!options.verbose
+        );
       }
-    } catch {
-      // ignore fetch if 'git remote' fails
+    } catch (_e) {
+      void 0; // ignore fetch if 'git remote' fails
     }
     await run('git', ['checkout', options.branch], dest, !!options.verbose);
-    options.onProgress?.({ type: 'git:branch:done', dest, branch: options.branch });
+    options.onProgress?.({
+      type: 'git:branch:done',
+      dest,
+      branch: options.branch,
+    });
     checkedOut = options.branch;
   } else if (typeof options.pr === 'number') {
     const remote = options.remote || 'origin';
     const localRef = `pr-${options.pr}`;
-    options.onProgress?.({ type: 'git:pr:start', dest, pr: options.pr, remote });
+    options.onProgress?.({
+      type: 'git:pr:start',
+      dest,
+      pr: options.pr,
+      remote,
+    });
     // GitHub-style PR refspec
-    await run('git', ['fetch', remote, `pull/${options.pr}/head:${localRef}`], dest, !!options.verbose);
+    await run(
+      'git',
+      ['fetch', remote, `pull/${options.pr}/head:${localRef}`],
+      dest,
+      !!options.verbose
+    );
     await run('git', ['checkout', localRef], dest, !!options.verbose);
     options.onProgress?.({ type: 'git:pr:done', dest, pr: options.pr, remote });
     checkedOut = localRef;
@@ -276,15 +323,31 @@ export async function gitdup(options: GitDupOptions = {}): Promise<GitDupResult>
   // If Node project, optionally run install step inside the duplicate
   if (isNode) {
     if (options.install === false) {
-      options.onProgress?.({ type: 'node:install:skip', dest, reason: 'install disabled by option' });
+      options.onProgress?.({
+        type: 'node:install:skip',
+        dest,
+        reason: 'install disabled by option',
+      });
     } else {
       const pm = await detectPackageManager(dest);
       if (!pm) {
-        options.onProgress?.({ type: 'node:install:skip', dest, reason: 'no package manager available' });
+        options.onProgress?.({
+          type: 'node:install:skip',
+          dest,
+          reason: 'no package manager available',
+        });
       } else {
-        options.onProgress?.({ type: 'node:install:start', dest, manager: pm.cmd });
+        options.onProgress?.({
+          type: 'node:install:start',
+          dest,
+          manager: pm.cmd,
+        });
         await run(pm.cmd, pm.args, dest, !!options.verbose);
-        options.onProgress?.({ type: 'node:install:done', dest, manager: pm.cmd });
+        options.onProgress?.({
+          type: 'node:install:done',
+          dest,
+          manager: pm.cmd,
+        });
       }
     }
   }

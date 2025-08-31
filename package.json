@@ -21,11 +21,14 @@
     "build:watch": "tsc -w -p tsconfig.json",
     "start": "node dist/cli.js",
     "test": "vitest",
-    "lint": "eslint . --ext .ts",
+    "lint": "eslint . --ext .ts --fix",
+    "lint:check": "eslint . --ext .ts",
     "format": "prettier --write .",
-    "prepare": "npm run build",
+    "format:check": "prettier --check .",
+    "check": "npm run format:check && npm run lint:check",
+    "prepare": "husky install || true && npm run build",
     "postbuild": "chmod +x dist/cli.js || true",
-    "prepublishOnly": "npm run format && npm run lint && npm test"
+    "prepublishOnly": "npm run check && npm test"
   },
   "files": [
     "dist"
@@ -34,6 +37,8 @@
     "commander": "^12.1.0"
   },
   "devDependencies": {
+    "eslint-plugin-unused-imports": "^3.2.0",
+    "husky": "^9.0.11",
     "@types/node": "^20.11.30",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
