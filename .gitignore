@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor
+.DS_Store
+.idea/
+.vscode/
+
+# Output
+dist/
+coverage/
+.tmp/

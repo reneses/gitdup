@@ -1,0 +1,46 @@
+{
+  "name": "gitdup",
+  "version": "0.1.0",
+  "description": "A simple CLI utility. Prints hello world for now.",
+  "bin": {
+    "gitdup": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "MIT",
+  "keywords": [
+    "cli",
+    "git",
+    "gitdup"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "tsc -w -p tsconfig.json",
+    "start": "node dist/cli.js",
+    "test": "vitest",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write .",
+    "prepare": "npm run build",
+    "postbuild": "chmod +x dist/cli.js || true",
+    "prepublishOnly": "npm run format && npm run lint && npm test"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4",
+    "vitest": "^3.2.4"
+  }
+}
