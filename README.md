@@ -98,7 +98,8 @@ Scripts:
 - `build`: Compile TypeScript to `dist/`.
 - `build:watch`: Rebuild on changes.
 - `start`: Run the built CLI.
-- `test`: Run unit tests with Vitest.
+- `test`: Run unit tests once (no watch).
+- `test:watch`: Run unit tests in watch mode.
 - `lint`: Lint with ESLint (auto-fix).
 - `lint:check`: Lint without fixing.
 - `format`: Auto-format with Prettier.
